@@ -1,53 +1,26 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C6 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 | Linux |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | ----- |
+# ESP32S3 SWD Flasher
 
-# Hello World Example
+这个项目是一个基于 ESP32-S3 的 SWD（Serial Wire Debug）烧录器
 
-Starts a FreeRTOS task to print "Hello World".
+## 工作进度
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+| 名称 Name         | 子项目 | Status 状态 | 备注 |
+| ----------------- | ------ | ----------- | ---- |
+| 读取IDCODE        |        | ✅已完成    |      |
+| 能halt核心        |        | 🚧 开发中   |      |
+| halt之后能继续run |        | 🚧 开发中   |      |
+| flm上传           |        | 🚧 开发中   |      |
+| flm执行           |        | 🚧 开发中   |      |
 
-## How to use example
+- ✅ 已完成
+- 🚧 开发中
+- 📦 搁置
 
-Follow detailed instructions provided specifically for this example.
+## 参考资料
 
-Select the instructions depending on Espressif chip installed on your development board:
-
-- [ESP32 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/stable/get-started/index.html)
-- [ESP32-S2 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html)
-
-
-## Example folder contents
-
-The project **hello_world** contains one source file in C language [hello_world_main.c](main/hello_world_main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt` files that provide set of directives and instructions describing the project's source files and targets (executable, library, or both).
-
-Below is short explanation of remaining files in the project folder.
-
-```
-├── CMakeLists.txt
-├── pytest_hello_world.py      Python script used for automated testing
-├── main
-│   ├── CMakeLists.txt
-│   └── hello_world_main.c
-└── README.md                  This is the file you are currently reading
-```
-
-For more information on structure and contents of ESP-IDF projects, please refer to Section [Build System](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/build-system.html) of the ESP-IDF Programming Guide.
-
-## Troubleshooting
-
-* Program upload failure
-
-    * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
-    * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
-
-## Technical support and feedback
-
-Please use the following feedback channels:
-
-* For technical queries, go to the [esp32.com](https://esp32.com/) forum
-* For a feature request or bug report, create a [GitHub issue](https://github.com/espressif/esp-idf/issues)
-
-We will get back to you as soon as possible.
+- **WaveDrom**: <https://wavedrom.com/editor.html>
+- **CMSIS-DAP**: <https://arm-software.github.io/CMSIS-DAP/latest/>
+- **CMSIS-DAP 代码仓库**: <https://github.com/ARM-software/CMSIS-DAP>
+- **CMSIS_5 代码仓库**: <https://github.com/ARM-software/CMSIS_5>
+- **ESP-IDF 编程指南**: <https://docs.espressif.com/projects/esp-idf/zh_CN/stable/esp32s3/get-started/index.html>
+- **ESP32-S3 技术规格**: <https://www.espressif.com/sites/default/files/documentation/esp32-s3_technical_reference_manual_en.pdf>

@@ -1,0 +1,50 @@
+# 基于某种风格
+BasedOnStyle: Microsoft  # 可选: Google, Chromium, Mozilla, WebKit, Microsoft, GNU
+# Language: C
+
+# 控制行宽，避免行太长
+ColumnLimit: 120
+
+# 对头文件排序
+SortIncludes: Never
+
+# 缩进设置
+IndentWidth: 4  # 使用4个空格缩进
+
+# 控制每行最大空行数（避免空行过多）
+MaxEmptyLinesToKeep: 1
+
+
+# 注释前保留一个空格
+SpacesBeforeTrailingComments: 1
+
+# AllowShortFunctionsOnASingleLine: None
+
+# 结构体/初始化列表尽量不要压成一行（兼容性较好的配置）
+BinPackArguments: false                    # 实参不打包到同一行
+# BinPackParameters: OnePerLine             # 形参超长时尽量一行一个
+AllowAllArgumentsOnNextLine: false        # 禁止“全部参数挪到下一行再挤在一行”
+# Cpp11BracedListStyle: true                # 统一按 C++11 花括号列表规则格式化
+# AllowShortBlocksOnASingleLine: Never      # 短代码块不合并为单行
+
+# BreakBeforeBraces: Allman
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true            # case 标签后是否换行放置左大括号
+  AfterClass: true                # class 定义后是否换行放置左大括号
+  AfterControlStatement: Always   # 控制语句(if/for/while/switch 等)后大括号换行策略: Never/MultiLine/Always
+  AfterEnum: true                 # enum 定义后是否换行放置左大括号
+  AfterExternBlock: true          # extern "C" 块后是否换行放置左大括号
+  AfterFunction: true             # 函数定义后是否换行放置左大括号
+  AfterNamespace: true            # namespace 定义后是否换行放置左大括号
+  AfterObjCDeclaration: true      # Objective-C 声明(@interface/@implementation)后是否换行放置左大括号
+  AfterStruct: true               # struct 定义后是否换行放置左大括号
+  AfterUnion: true                # union 定义后是否换行放置左大括号
+  BeforeCatch: true               # catch 前是否换行
+  BeforeElse: true                # else 前是否换行
+  BeforeLambdaBody: true          # lambda 体左大括号前是否换行
+  BeforeWhile: true               # do-while 中 while 前是否换行
+  IndentBraces: false              # 是否对已换行的大括号本身进行缩进
+  SplitEmptyFunction: true        # 空函数体是否拆成两行（{ 和 } 分开）
+  SplitEmptyRecord: true          # 空记录体(class/struct/union)是否拆成两行
+  SplitEmptyNamespace: true       # 空命名空间体是否拆成两行

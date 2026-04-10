@@ -1,2 +1,106 @@
 CompileFlags:
-    Remove: [-f*, -m*]
+  Compiler: "C:/Users/mjc/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc.exe"
+  Add:
+    # 定义宏
+    - "-D__XTENSA__"
+    - "-DUSE_GCC"
+    - "-DUNICODE"
+    - "-D_UNICODE"
+    - "-D__STATIC_INLINE"
+    - "-D__ASM"
+    - "-D__INTERRUPT="
+    - "-D__aligned(x)="
+    - "-D__attribute__(x)="
+
+    # GCC 特定选项
+    - "-fexceptions"
+    - "-Wall"
+    - "-Wextra"
+    - "-Wpedantic"
+    - "-std=gnu17"
+    - "-xc"
+
+    # 移除警告
+    - -Wno-unused-parameter
+    - -Wno-unused-variable
+    - -Wno-empty-translation-unit
+
+    # include
+    - "-isystemC:/Users/mjc/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include"
+    - "-isystemC:/Users/mjc/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/13.2.0/include"
+    - "-isystemC:/Users/mjc/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/13.2.0/include-fixed"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/xtensa/esp32s3/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/xtensa/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/xtensa/deprecated_include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/newlib/platform_include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/freertos/config/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/freertos/config/include/freertos"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/freertos/config/xtensa/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/freertos/FreeRTOS-Kernel/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/freertos/FreeRTOS-Kernel/portable/xtensa/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/freertos/FreeRTOS-Kernel/portable/xtensa/include/freertos"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/freertos/esp_additions/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_hw_support/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_hw_support/include/soc"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_hw_support/include/soc/esp32s3"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/log/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/soc/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/soc/esp32s3"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_common/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/soc/esp32s3/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/soc/esp32s3/register"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/hal/platform_port/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/hal/esp32s3/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/hal/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_rom/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_rom/include/esp32s3"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_rom/esp32s3"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_system/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_event/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/nvs_flash/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_netif/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/lwip/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_timer/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_pm/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_driver_gpio/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_driver_uart/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_driver_spi/include"
+    - "-IC:/Users/mjc/esp/v5.3/esp-idf/components/esp_wifi/include"
+    - "-I${workspaceFolder}/build/config"
+    - "-I${workspaceFolder}/main"
+    - "-I${workspaceFolder}/components/dap"
+    - "-I${workspaceFolder}/components/dap/io"
+
+  # 移除所有 C++ 相关的标志
+  Remove:
+    - -std=c++*             # 移除所有 C++ 标准
+    - -fexceptions          # C 语言没有异常
+    - -frtti                # C 语言没有 RTTI
+    - -ObjC                 # 移除 Objective-C
+    - -ObjC++               # 移除 Objective-C++
+    - -fobjc-arc            # 移除 ARC
+    - -mlongcalls           # clangd 不识别该 xtensa 选项
+    - -mlong-calls          # 兼容可能的连字符写法
+    - -fno-shrink-wrap      # clangd 当前不识别
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+    - -mdisable-hardware-atomics
+  
+
+  CompilationDatabase: "build/compile_commands.json"
+
+Completion:
+  HeaderInsertion: Never
+
+InlayHints: # 代码提示设置部分
+  Enabled: true # 启用代码提示
+  ParameterNames: true # 显示参数名称提示
+  DeducedTypes: true # 显示推断类型提示
+  Designators: true # 显示设计器提示
+
+Diagnostics:
+  # UnusedIncludes: Strict  # 严格检查（默认）
+  UnusedIncludes: None # 不检查
+  Suppress:
+    - drv_unknown_argument
+  # UnusedIncludes: Macros  # 只检查宏
