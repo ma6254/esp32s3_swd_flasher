@@ -23,6 +23,8 @@
 
 static const char *TAG = "main";
 
+static int is_detected = -1;
+
 /*******************************************************************************
  * @brief 示例任务：定期发送BLE通知
  * @param pvParameters 任务参数（未使用）
@@ -41,23 +43,41 @@ void test_task(void *pvParameters)
     // esp_task_wdt_delete(xTaskGetIdleTaskHandleForCore(xPortGetCoreID()));
     // esp_task_wdt_add(xTaskGetIdleTaskHandleForCore(xPortGetCoreID()));
 
+    swd_init();
+
     while (1)
     {
         vTaskDelay(pdMS_TO_TICKS(1000));
 
-        uint8_t is_detected = swd_detect();
-        
-        if(is_detected) {
-            set_led_color(0xFF, 0x00, 0x00); // 设置为红色
+        uint8_t curr_is_detected = swd_detect();
 
+        if (curr_is_detected)
+        {
+            set_led_color(1, 0x00, 0x00); // 设置为红色
             swd_read_idcode(&idcode);
 
-            ESP_LOGI(TAG, "SWD device detected, IDCODE: 0x%08" PRIX32, idcode);
+            // ESP_LOGI(TAG, "SWD device detected, IDCODE: 0x%08" PRIX32, idcode);
         }
         else
         {
-            set_led_color(0x00, 0x00, 0xFF); // 设置为蓝色
+            set_led_color(0x00, 0x00, 1); // 设置为蓝色
         }
+
+        if ((is_detected < 0) || (curr_is_detected != is_detected))
+        {
+            if (curr_is_detected)
+            {
+                ESP_LOGI(TAG, "SWD device detected, IDCODE: 0x%08" PRIX32, idcode);
+            }
+            else
+            {
+                ESP_LOGI(TAG, "SWD device not detected");
+            }
+
+            // ESP_LOGI(TAG, "SWD device %s", curr_is_detected ? "detected" : "not detected");
+        }
+
+        is_detected = curr_is_detected;
     }
 }
 
@@ -94,8 +114,8 @@ void app_main(void)
 
     xTaskCreate(test_task, "test_task", 4096, NULL, 5, NULL);
 
-    // while (1)
-    // {
-    //     vTaskDelay(pdMS_TO_TICKS(1000));
-    // }
+    while (1)
+    {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
 }

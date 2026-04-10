@@ -1,0 +1,11 @@
+{
+  "signal": [
+    { "name": "SWCLK",   "wave": "P................................................................................" },
+    { "name": "SWDIO",   "wave": "1.......=...............1.......0.10100101z100=...............................=z", "data": ["0xE79E", "IDCODE[31:0]", "P"] },
+    { "name": "Phase",   "wave": "5.......4...............5.......2.3.......74..5...............................67", "data": ["Line Reset(≥50)", "Switch(16bit)", "Line Reset(≥50)", "Idle(≥2)", "Request(0xA5)", "Trn", "ACK(OK)", "RDATA(32bit)", "Parity", "Trn"] },
+    { "name": "Bus Dir", "wave": "2.........................................34...................................3", "data": ["Host→Target", "↔", "Target→Host", "↔"] }
+  ],
+  "head": { "text": "SWD Read IDCODE", "tick": 0 },
+  "foot": { "text": "Request: Start(1)|APnDP(0)|RnW(1)|A[2](0)|A[3](0)|Par(1)|Stop(0)|Park(1) = 0xA5   ACK OK=b001(LSB-first)   IDCODE e.g. 0x2BA01477" },
+  "config": { "hscale": 1 }
+}

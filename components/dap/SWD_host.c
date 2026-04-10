@@ -8,6 +8,10 @@
 #include "DAP.h"
 #include "debug_cm.h"
 
+#include <esp_log.h>
+#include <inttypes.h>
+static const char *SWD_TAG = "swd_host";
+
 extern uint32_t Flash_Page_Size;
 
 #define NVIC_Addr (0xe000e000)
@@ -764,7 +768,7 @@ uint8_t swd_flash_syscall_exec(const program_syscall_t *sysCallParam, uint32_t e
     return 1;
 }
 
-// SWD Reset
+// SWD Reset - send at least 50 HIGH bits on SWDIO
 static uint8_t swd_reset(void)
 {
     uint8_t tmp_in[8];
@@ -775,7 +779,7 @@ static uint8_t swd_reset(void)
         tmp_in[i] = 0xff;
     }
 
-    SWJ_Sequence(51, tmp_in);
+    SWJ_Sequence(56, tmp_in);
     return 1;
 }
 
@@ -787,6 +791,80 @@ static uint8_t swd_switch(uint16_t val)
     tmp_in[1] = (val >> 8) & 0xff;
     SWJ_Sequence(16, tmp_in);
     return 1;
+}
+
+// Helper: bit-bang one SWD clock cycle with given SWDIO value
+static inline void swd_clock_bit(uint32_t bit)
+{
+    PIN_SWDIO_OUT(bit);
+    PIN_SWCLK_TCK_CLR();
+    PIN_DELAY_SLOW(DAP_Data.clock_delay);
+    PIN_SWCLK_TCK_SET();
+    PIN_DELAY_SLOW(DAP_Data.clock_delay);
+}
+
+// Helper: clock one cycle without driving SWDIO (for turnaround/ACK)
+static inline void swd_clock_cycle(void)
+{
+    PIN_SWCLK_TCK_CLR();
+    PIN_DELAY_SLOW(DAP_Data.clock_delay);
+    PIN_SWCLK_TCK_SET();
+    PIN_DELAY_SLOW(DAP_Data.clock_delay);
+}
+
+// SWD Write TARGETSEL register (multi-drop SWDv2, target does NOT ACK)
+// This must be done entirely by bit-banging because SWD_Transfer() expects an ACK.
+static void swd_write_targetsel(uint32_t val)
+{
+    uint32_t parity;
+    uint32_t n;
+
+    // 1. Idle cycles (SWDIO low, at least 2 cycles after line reset)
+    for (n = 0; n < 8; n++)
+    {
+        swd_clock_bit(0U);
+    }
+
+    // 2. Send 8-bit request header for DP Write TARGETSEL (addr 0x0C)
+    //    Start=1, APnDP=0, RnW=0, A[2]=1, A[3]=1, Parity=0, Stop=0, Park=1
+    //    LSB first: 1,0,0,1,1,0,0,1 = 0x99
+    swd_clock_bit(1U);  // Start
+    swd_clock_bit(0U);  // APnDP = 0 (DP)
+    swd_clock_bit(0U);  // RnW = 0 (Write)
+    swd_clock_bit(1U);  // A2 = 1
+    swd_clock_bit(1U);  // A3 = 1
+    swd_clock_bit(0U);  // Parity (0+0+1+1 = even = 0)
+    swd_clock_bit(0U);  // Stop
+    swd_clock_bit(1U);  // Park
+
+    // 3. Turnaround(1) + ACK(3) + Turnaround(1) = 5 cycles
+    //    Nobody drives SWDIO during this phase for TARGETSEL
+    PIN_SWDIO_OUT_DISABLE();
+    for (n = 0; n < 5; n++)
+    {
+        swd_clock_cycle();
+    }
+    PIN_SWDIO_OUT_ENABLE();
+
+    // 4. Write 32-bit TARGETSEL data (LSB first)
+    parity = 0U;
+    for (n = 0; n < 32; n++)
+    {
+        swd_clock_bit(val & 1U);
+        parity += val & 1U;
+        val >>= 1;
+    }
+
+    // 5. Write parity bit
+    swd_clock_bit(parity & 1U);
+
+    // 6. Trailing idle cycles
+    for (n = 0; n < 8; n++)
+    {
+        swd_clock_bit(0U);
+    }
+
+    PIN_SWDIO_OUT(1U);
 }
 
 // SWD Read ID
@@ -806,7 +884,36 @@ uint8_t swd_read_idcode(uint32_t *id)
     return 1;
 }
 
-static uint8_t JTAG2SWD()
+// Dormant-to-SWD wake-up sequence (ADIv5.2)
+// Required if the DP is in dormant state (e.g. RP2040 after certain conditions)
+static void swd_dormant_wakeup(void)
+{
+    // 1. At least 8 HIGH clocks
+    uint8_t ones[8];
+    for (int i = 0; i < 8; i++) ones[i] = 0xFF;
+    SWJ_Sequence(8, ones);
+
+    // 2. 128-bit Selection Alert sequence (LSB first)
+    //    Value: 0x19BC0EA2 E3DDAFE9 86852D95 6209F392
+    static const uint8_t selection_alert[16] = {
+        0x92, 0xF3, 0x09, 0x62,  // 6209F392 LSB first
+        0x95, 0x2D, 0x85, 0x86,  // 86852D95 LSB first
+        0xE9, 0xAF, 0xDD, 0xE3,  // E3DDAFE9 LSB first
+        0xA2, 0x0E, 0xBC, 0x19   // 19BC0EA2 LSB first
+    };
+    SWJ_Sequence(128, selection_alert);
+
+    // 3. 4 LOW clocks
+    uint8_t zero[1] = {0x00};
+    SWJ_Sequence(4, zero);
+
+    // 4. SWD Activation Code: 0x1A (8 bits, LSB first)
+    uint8_t activation = 0x1A;
+    SWJ_Sequence(8, &activation);
+}
+
+// Line reset + JTAG-to-SWD switch + optional TARGETSEL + read IDCODE
+static uint8_t JTAG2SWD(uint32_t targetsel)
 {
     uint32_t tmp = 0;
 
@@ -825,28 +932,90 @@ static uint8_t JTAG2SWD()
         return 0;
     }
 
+    // For SWD multi-drop targets (e.g. RP2040), send TARGETSEL before reading IDCODE
+    if (targetsel != 0)
+    {
+        swd_write_targetsel(targetsel);
+    }
+
     if (!swd_read_idcode(&tmp))
     {
         return 0;
     }
 
+    ESP_LOGI(SWD_TAG, "JTAG2SWD OK, IDCODE=0x%08" PRIX32, tmp);
+    return 1;
+}
+
+// Try dormant-to-SWD wake-up, then TARGETSEL + read IDCODE
+static uint8_t swd_dormant_to_swd(uint32_t targetsel)
+{
+    uint32_t tmp = 0;
+
+    swd_dormant_wakeup();
+
+    if (!swd_reset())
+    {
+        return 0;
+    }
+
+    if (targetsel != 0)
+    {
+        swd_write_targetsel(targetsel);
+    }
+
+    if (!swd_read_idcode(&tmp))
+    {
+        return 0;
+    }
+
+    ESP_LOGI(SWD_TAG, "Dormant-to-SWD OK, IDCODE=0x%08" PRIX32, tmp);
     return 1;
 }
 
 uint8_t swd_detect(void)
 {
-
     // init dap state with fake values
     dap_state.select = 0xffffffff;
     dap_state.csw = 0xffffffff;
     swd_init();
 
-    if (!JTAG2SWD())
+    // 1. Try standard JTAG-to-SWD with TARGETSEL (RP2040 Core 0)
+    if (JTAG2SWD(RP2040_CORE0_TARGETSEL))
     {
-        return 0;
+        ESP_LOGI(SWD_TAG, "1. JTAG2SWD with Core0 TARGETSEL successful");
+        return 1;
     }
+    // ESP_LOGW(SWD_TAG, "JTAG2SWD with Core0 TARGETSEL failed");
 
-    return 1;
+    // 2. Try dormant-to-SWD wake-up (RP2040 might be in dormant state)
+    swd_init();
+    if (swd_dormant_to_swd(RP2040_CORE0_TARGETSEL))
+    {
+        ESP_LOGI(SWD_TAG, "2. Dormant-to-SWD with Core0 TARGETSEL successful");
+        return 2;
+    }
+    // ESP_LOGW(SWD_TAG, "Dormant-to-SWD with Core0 TARGETSEL failed");
+
+    // 3. Try Rescue DP (works even if user code disabled SWD on Core 0)
+    swd_init();
+    if (JTAG2SWD(RP2040_RESCUE_TARGETSEL))
+    {
+        ESP_LOGI(SWD_TAG, "3. JTAG2SWD with Rescue DP successful");
+        return 3;
+    }
+    // ESP_LOGW(SWD_TAG, "JTAG2SWD with Rescue DP failed");
+
+    // 4. Try without TARGETSEL (standard SWD v1 targets)
+    swd_init();
+    if (JTAG2SWD(0))
+    {
+        ESP_LOGI(SWD_TAG, "4. JTAG2SWD without TARGETSEL successful");
+        return 4;
+    }
+    // ESP_LOGW(SWD_TAG, "JTAG2SWD without TARGETSEL failed");
+
+    return 0;
 }
 
 uint8_t swd_init_debug(void)
@@ -863,7 +1032,7 @@ uint8_t swd_init_debug(void)
     // this function can do several stuff before really initing the debug
     // target_before_init_debug();
 
-    if (!JTAG2SWD())
+    if (!JTAG2SWD(RP2040_CORE0_TARGETSEL))
     {
         return 0;
     }
@@ -927,13 +1096,7 @@ __attribute__((weak)) void swd_set_target_reset(uint8_t asserted)
 */
 void swd_set_target_reset(uint8_t asserted)
 {
-    /* 本文件中对此函数的使用都是先 asserted=1 调用，延时后 asserted=0 调用，为了只调用一次所以只在第二次调用此函数时执行软件复位 */
-    if (asserted == 0)
-    {
-        uint32_t val;
-        swd_read_word(NVIC_AIRCR, &val);
-        swd_write_word(NVIC_AIRCR, VECTKEY | (val & AIRCR_PRIGROUP_Msk) | SYSRESETREQ);
-    }
+    (asserted) ? PIN_nRESET_OUT(0) : PIN_nRESET_OUT(1);
 }
 
 uint8_t swd_set_target_state_hw(TARGET_RESET_STATE state)
@@ -1015,7 +1178,7 @@ uint8_t swd_set_target_state_hw(TARGET_RESET_STATE state)
         break;
 
     case DEBUG:
-        if (!JTAG2SWD())
+        if (!JTAG2SWD(RP2040_CORE0_TARGETSEL))
         {
             return 0;
         }
@@ -1170,7 +1333,7 @@ uint8_t swd_set_target_state_sw(TARGET_RESET_STATE state)
         break;
 
     case DEBUG:
-        if (!JTAG2SWD())
+        if (!JTAG2SWD(RP2040_CORE0_TARGETSEL))
         {
             return 0;
         }

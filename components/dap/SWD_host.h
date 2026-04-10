@@ -13,6 +13,15 @@ typedef enum {
     RUN                      // Resume the target without resetting it
 } TARGET_RESET_STATE;
 
+typedef enum
+{
+    SWD_DETECT_NONE = 0,        // 无法连接
+    SWD_DETECT_JTAG2SWD,        // 通过 JTAG2SWD + TARGETSEL 连接
+    SWD_DETECT_DORMANT_TO_SWD,  // 通过 Dormant-to-SWD 连接
+    SWD_DETECT_JTAG2SWD_RESCUE, // 通过 Rescue DP  连接
+    SWD_DETECT_STD_DP,          // 标准 SWD 连接（无 TARGETSEL）
+} SWD_DETECT_TYPE;
+
 typedef struct
 {
     uint32_t breakpoint;

@@ -34,7 +34,8 @@ void board_init(void)
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &g_board.led_strip));
 
     // 清空所有灯珠（全部熄灭）
-    ESP_ERROR_CHECK(led_strip_clear(g_board.led_strip));
+    set_led_color(0x00, 0x00, 0x00);
+    // ESP_ERROR_CHECK(led_strip_clear(g_board.led_strip));
     ESP_LOGI(TAG, "LED初始化完成");
 }
 
